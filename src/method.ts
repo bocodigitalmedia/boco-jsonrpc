@@ -3,6 +3,7 @@ import { Either, right, left } from "fp-ts/lib/Either"
 import { RequestParams } from "./request"
 
 export type PassFn = (args: any[]) => Either<InvalidParams, any[]>
+
 export type FailFn = (
     data?: any,
     message?: string

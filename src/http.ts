@@ -14,11 +14,11 @@ import { METHOD_NOT_FOUND, INVALID_REQUEST } from "./response/failure/errors"
 
 export const DEFAULT_LIMIT = "100kb"
 
-export interface Options {
+export interface BodyParserOptions {
     limit: string | number
 }
 
-export interface Context {
+interface Context {
     request?: Request
     response: Response
 }
@@ -66,7 +66,7 @@ function getStream(req: IncomingMessage): Promise<Readable> {
 
 function getStreamBody(
     req: IncomingMessage,
-    { limit }: Options = { limit: DEFAULT_LIMIT }
+    { limit }: BodyParserOptions = { limit: DEFAULT_LIMIT }
 ) {
     const encoding = getEncoding(req)
     const length = getContentLength(req)
@@ -79,9 +79,9 @@ function getStreamBody(
     return (stream: Readable) => getRawBody(stream, getRawBodyOptions)
 }
 
-export function getJson(
+function getJson(
     req: IncomingMessage,
-    options?: Options
+    options?: BodyParserOptions
 ): Promise<string> {
     const types = [
         "application/json",
@@ -103,10 +103,10 @@ export function getJson(
     return getStream(req).then(getStreamBody(req, options))
 }
 
-export function handleIncomingMessage(
+function handleIncomingMessage(
     service: Service,
     req: IncomingMessage,
-    options?: Options
+    options?: BodyParserOptions
 ): Promise<Context> {
     return getJson(req, options).then((json: string) =>
         parseRequest(json)
@@ -125,7 +125,7 @@ export function handleIncomingMessage(
     )
 }
 
-export function createPostRoute(service: Service, options?: Options) {
+export function createPostRoute(service: Service, options?: BodyParserOptions) {
     return function(
         req: IncomingMessage,
         res: ServerResponse,

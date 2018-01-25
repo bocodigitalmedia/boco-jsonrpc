@@ -1,7 +1,7 @@
 {
     "include": ["src", "node_modules/@types"],
     "compilerOptions": {
-        "outDir": "build",
+        "outDir": "lib",
         "target": "es2017",
         "module": "commonjs",
         "moduleResolution": "node",

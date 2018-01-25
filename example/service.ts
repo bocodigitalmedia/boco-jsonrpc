@@ -1,4 +1,4 @@
-import { ValidateParamsFn, Method, Service } from "../src"
+import { ValidateParamsFn, Method, Service } from "../lib"
 import { add, sub, foo, bar, baz } from "./math"
 
 const isNumber = (a: any): a is number => typeof a === "number"
