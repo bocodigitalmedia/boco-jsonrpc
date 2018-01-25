@@ -1,6 +1,6 @@
 {
     "name": "boco-jsonrpc",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "main": "./lib/index.js",
     "types": "./lib/index.d.ts",
     "license": "MIT",
@@ -21,8 +21,7 @@
         "build": "rimraf build && tsc -p tsconfig.json",
         "watch": "rimraf build && tsc -w -p tsconfig.json"
     },
-    "description":
-        "Well typed JSON RPC 2.0 server and client (typescript) Edit",
+    "description": "Well typed JSON RPC 2.0 server and client (typescript) Edit",
     "repository": "git@github.com:bocodigitalmedia/boco-jsonrpc.git",
     "author": "Christian Bradley <christian.bradley@bocodigital.com>"
 }
