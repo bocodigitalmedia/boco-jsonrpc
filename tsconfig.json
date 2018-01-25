@@ -1,0 +1,15 @@
+{
+    "include": ["src", "node_modules/@types"],
+    "compilerOptions": {
+        "outDir": "build",
+        "target": "es2017",
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "strict": true,
+        "forceConsistentCasingInFileNames": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitReturns": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true
+    }
+}
