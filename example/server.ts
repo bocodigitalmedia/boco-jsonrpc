@@ -1,6 +1,6 @@
 import * as Express from "express"
 import { service } from "./service"
-import { createPostRoute } from "../src"
+import { createPostRoute } from "boco-jsonrpc"
 
 const app = Express()
 

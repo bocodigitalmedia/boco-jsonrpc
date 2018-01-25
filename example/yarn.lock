@@ -35,6 +35,14 @@ balanced-match@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/balanced-match/-/balanced-match-1.0.0.tgz#89b4d199ab2bee49de164ea02b89ce462d71b767"
 
+boco-jsonrpc@^0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/boco-jsonrpc/-/boco-jsonrpc-0.1.0.tgz#7f87443efeb7f6bdec4c1412e6361b581016c03d"
+  dependencies:
+    http-errors "^1.6.2"
+    io-ts "^0.9.5"
+    raw-body "^2.3.2"
+
 body-parser@1.18.2:
   version "1.18.2"
   resolved "https://registry.yarnpkg.com/body-parser/-/body-parser-1.18.2.tgz#87678a19d84b47d859b83199bd59bce222b10454"
@@ -192,6 +200,10 @@ forwarded@~0.1.2:
   version "0.1.2"
   resolved "https://registry.yarnpkg.com/forwarded/-/forwarded-0.1.2.tgz#98c23dab1175657b8c0573e8ceccd91b0ff18c84"
 
+fp-ts@^0.6.4:
+  version "0.6.8"
+  resolved "https://registry.yarnpkg.com/fp-ts/-/fp-ts-0.6.8.tgz#3b4ac3251f3565b2aefceffd787eb06c30c04b52"
+
 fresh@0.5.2:
   version "0.5.2"
   resolved "https://registry.yarnpkg.com/fresh/-/fresh-0.5.2.tgz#3d8cadd90d976569fa835ab1f8e4b23a105605a7"
@@ -221,7 +233,7 @@ homedir-polyfill@^1.0.1:
   dependencies:
     parse-passwd "^1.0.0"
 
-http-errors@1.6.2, http-errors@~1.6.2:
+http-errors@1.6.2, http-errors@^1.6.2, http-errors@~1.6.2:
   version "1.6.2"
   resolved "https://registry.yarnpkg.com/http-errors/-/http-errors-1.6.2.tgz#0a002cc85707192a7e7946ceedc11155f60ec736"
   dependencies:
@@ -244,6 +256,12 @@ inflight@^1.0.4:
 inherits@2, inherits@2.0.3:
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/inherits/-/inherits-2.0.3.tgz#633c2c83e3da42a502f52466022480f4208261de"
+
+io-ts@^0.9.5:
+  version "0.9.5"
+  resolved "https://registry.yarnpkg.com/io-ts/-/io-ts-0.9.5.tgz#cc5ca520306a6ac7bcbda3259c3a630edd7412c0"
+  dependencies:
+    fp-ts "^0.6.4"
 
 ipaddr.js@1.5.2:
   version "1.5.2"
@@ -350,7 +368,7 @@ range-parser@~1.2.0:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/range-parser/-/range-parser-1.2.0.tgz#f49be6b487894ddc40dcc94a322f611092e00d5e"
 
-raw-body@2.3.2:
+raw-body@2.3.2, raw-body@^2.3.2:
   version "2.3.2"
   resolved "https://registry.yarnpkg.com/raw-body/-/raw-body-2.3.2.tgz#bcd60c77d3eb93cde0050295c3f379389bc88f89"
   dependencies:
