@@ -80,3 +80,21 @@ export function isFailureErrorWithCode<C extends number = number>(code: C) {
     return (e: any): e is FailureError<C> =>
         isFailureError(e) && e.code === code
 }
+
+export function failureErrorFrom(error: any): FailureError {
+    if (isFailureError(error)) {
+        return FailureError(error.code, error.message, error.data)
+    }
+
+    if (typeof error === "object" && error.stack) {
+        const errorData = Object.getOwnPropertyNames(error)
+            .filter(k => k !== "stack")
+            .reduce((memo, key) => ({ ...memo, [key]: error[key] }), {
+                name: error.name
+            })
+
+        return errors.InternalError(errorData)
+    }
+
+    return errors.InternalError(error)
+}

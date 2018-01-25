@@ -1,78 +1,123 @@
-import { MethodNotFound, InternalError } from "./response/failure/errors"
-import { FailureError, isFailureError } from "./response/failure"
+import {
+    Request,
+    parseRequest,
+    validateRequest,
+    RequestParams,
+    paramsToArguments,
+    JsonReviver
+} from "./request"
 
-import { Request } from "./request"
-import { left, right, Either } from "fp-ts/lib/Either"
-import { Method, apply } from "./method"
+import { MethodNotFound } from "./response/failure/errors"
+import { FailureError, failureErrorFrom } from "./response/failure"
 import { Success } from "./response/success"
 import { Failure } from "./response/failure"
 import { Response } from "./response"
+import { left, right, Either } from "fp-ts/lib/Either"
 import { identity } from "fp-ts/lib/function"
 
 export interface Methods {
-    [key: string]: Method
+    [key: string]: Function
 }
 
 export type TransformErrorFn = (error: any) => any
+export type ParamsToArgsFn = (method: string, params?: RequestParams) => any[]
 
-export interface Service {
+export interface Service extends ServiceOptions {
     methods: Methods
+}
+
+export interface ServiceOptions {
     transformError: TransformErrorFn
+    paramsToArgs: ParamsToArgsFn
 }
 
 export function Service(
     methods: Methods,
-    transformError: TransformErrorFn = identity
+    {
+        transformError = identity,
+        paramsToArgs = defaultParamsToArgs
+    }: Partial<ServiceOptions> = {}
 ): Service {
-    return { methods, transformError }
-}
-
-export function hasMethod(method: string, service: Service): boolean {
-    return service.methods[method] !== undefined
-}
-
-export function getMethod(
-    request: Request,
-    service: Service,
-    msg?: string
-): Either<FailureError, Method> {
-    return hasMethod(request.method, service)
-        ? right(service.methods[request.method])
-        : left(MethodNotFound({ method: request.method }, msg))
-}
-
-export function toFailureError(error: any): FailureError {
-    if (isFailureError(error)) {
-        return FailureError(error.code, error.message, error.data)
+    return {
+        methods,
+        transformError,
+        paramsToArgs
     }
-
-    if (typeof error === "object" && error.stack) {
-        const errorData = Object.getOwnPropertyNames(error)
-            .filter(k => k !== "stack")
-            .reduce((memo, key) => ({ ...memo, [key]: error[key] }), {
-                name: error.name
-            })
-
-        return InternalError(errorData)
-    }
-
-    return InternalError(error)
 }
 
-export function handleRequest(
-    request: any,
-    service: Service
-): Promise<Response> {
-    const handleError = (error: any) =>
-        toFailureError(service.transformError(error))
+function defaultParamsToArgs(_method: string, params?: RequestParams) {
+    return paramsToArguments(params)
+}
 
-    return getMethod(request, service)
+function hasMethod(key: string, methods: Methods): boolean {
+    return (
+        Object.prototype.hasOwnProperty.apply(methods, [key]) &&
+        typeof methods[key] === "function"
+    )
+}
+
+function getMethod(
+    key: string,
+    methods: Methods
+): Either<FailureError, Function> {
+    return hasMethod(key, methods)
+        ? right(methods[key])
+        : left(MethodNotFound(key))
+}
+
+export function receiveRequest(
+    { method, params, id }: Request,
+    { transformError, paramsToArgs, methods }: Service
+): Promise<Response | void> {
+    const handleError = (error: any) => failureErrorFrom(transformError(error))
+
+    return getMethod(method, methods)
         .fold(
             l => Promise.reject(l),
-            endpoint => apply(endpoint, request.params)
+            f => {
+                return Promise.resolve()
+                    .then(() => paramsToArgs(method, params))
+                    .then(args => f(...args))
+            }
         )
         .then(
-            result => Success(result, request.id),
-            error => Failure(handleError(error), request.id)
+            result => Success(result, id),
+            error => Failure(handleError(error), id)
         )
+        .then(response => (id === undefined ? undefined : response))
+}
+
+export function receiveRequests(
+    requests: Request[],
+    service: Service
+): Promise<Response[] | void> {
+    const promises = requests.map(request => receiveRequest(request, service))
+
+    return Promise.all(promises)
+        .then(responses => responses.filter(v => v !== undefined) as Response[])
+        .then(responses => (responses.length > 0 ? responses : undefined))
+}
+
+export function receiveData(
+    data: any,
+    service: Service
+): Promise<Response | Response[] | void> {
+    return validateRequest(data).fold(
+        l => Promise.resolve(Failure(l)),
+        r =>
+            Array.isArray(r)
+                ? receiveRequests(r, service)
+                : receiveRequest(r, service)
+    )
+}
+
+export function receiveJson(
+    json: string,
+    service: Service,
+    reviver?: JsonReviver
+): Promise<Response | Response[] | void> {
+    return parseRequest(json, reviver).fold(
+        l => Promise.resolve(Failure(l)),
+        r => receiveData(r, service)
+    )
 }

@@ -1,18 +1,19 @@
-import { FailureError } from "./response/failure";
-import { Request } from "./request";
-import { Either } from "fp-ts/lib/Either";
-import { Method } from "./method";
+import { Request, RequestParams, JsonReviver } from "./request";
 import { Response } from "./response";
 export interface Methods {
-    [key: string]: Method;
+    [key: string]: Function;
 }
 export declare type TransformErrorFn = (error: any) => any;
-export interface Service {
+export declare type ParamsToArgsFn = (method: string, params?: RequestParams) => any[];
+export interface Service extends ServiceOptions {
     methods: Methods;
-    transformError: TransformErrorFn;
 }
-export declare function Service(methods: Methods, transformError?: TransformErrorFn): Service;
-export declare function hasMethod(method: string, service: Service): boolean;
-export declare function getMethod(request: Request, service: Service, msg?: string): Either<FailureError, Method>;
-export declare function toFailureError(error: any): FailureError;
-export declare function handleRequest(request: any, service: Service): Promise<Response>;
+export interface ServiceOptions {
+    transformError: TransformErrorFn;
+    paramsToArgs: ParamsToArgsFn;
+}
+export declare function Service(methods: Methods, {transformError, paramsToArgs}?: Partial<ServiceOptions>): Service;
+export declare function receiveRequest({method, params, id}: Request, {transformError, paramsToArgs, methods}: Service): Promise<Response | void>;
+export declare function receiveRequests(requests: Request[], service: Service): Promise<Response[] | void>;
+export declare function receiveData(data: any, service: Service): Promise<Response | Response[] | void>;
+export declare function receiveJson(json: string, service: Service, reviver?: JsonReviver): Promise<Response | Response[] | void>;

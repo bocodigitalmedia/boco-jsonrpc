@@ -1,23 +1,19 @@
-import { ValidateParamsFn, Method, Service } from "boco-jsonrpc"
-import { add, sub, foo, bar, baz } from "./math"
+import { Service, InvalidParams } from "../src"
+import * as math from "./math"
 
-const isNumber = (a: any): a is number => typeof a === "number"
-
+const isNumber = n => typeof n === "number"
 const isNumberTuple = (a: any): a is [number, number] =>
     Array.isArray(a) && a.length === 2 && a.every(isNumber)
 
-const validateParams: ValidateParamsFn = (a, pass, fail) =>
-    isNumberTuple(a) ? pass(a) : fail("Must be a tuple of numbers")
-
-const method = (a: Function) => Method(a, validateParams)
-
-export const service = Service(
-    {
-        add: method(add),
-        sub: method(sub),
-        foo: method(foo),
-        bar: method(bar),
-        baz: method(baz)
+export const service = Service(math, {
+    paramsToArgs: (method, params) => {
+        console.log(method, params)
+        if (isNumberTuple(params)) {
+            return params
+        } else {
+            throw "FOO"
+        }
     },
-    error => (error === "BAZ" ? { code: 54321, message: "BAZ!" } : error)
-)
+    transformError: (error: any) =>
+        error === "FOO" ? InvalidParams("must be a tuple of numbers") : error
+})

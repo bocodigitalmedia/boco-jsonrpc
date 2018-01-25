@@ -1,5 +1,4 @@
 export { createPostRoute } from "./http"
-export { Method, PassFn, FailFn, ValidateParamsFn } from "./method"
 
 export {
     Request,
@@ -13,12 +12,12 @@ export { Response } from "./response"
 
 export {
     Service,
+    ServiceOptions,
     Methods,
     TransformErrorFn,
-    getMethod,
-    hasMethod,
-    handleRequest,
-    toFailureError
+    receiveRequest,
+    receiveRequests,
+    receiveJson
 } from "./service"
 
 export {
@@ -27,8 +26,9 @@ export {
     FailureError,
     isFailureError,
     isFailureErrorWithCode,
-    FailureErrorFactory,
-    errors as failureErrors
+    FailureErrorFactory
 } from "./response/failure"
+
+export * from "./response/failure/errors"
 
 export { Success, isSuccess } from "./response/success"

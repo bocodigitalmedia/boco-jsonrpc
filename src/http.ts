@@ -5,22 +5,15 @@ import { Readable } from "stream"
 import * as createError from "http-errors"
 import * as getRawBody from "raw-body"
 
-import { Service, handleRequest } from "./service"
-import { validateRequest, parseRequest, Request } from "./request"
+import { Service, receiveJson } from "./service"
 import { Response } from "./response"
-import { Failure, isFailure } from "./response/failure"
-import { FailureError } from "./response/failure"
-import { METHOD_NOT_FOUND, INVALID_REQUEST } from "./response/failure/errors"
+import { isFailure } from "./response/failure"
+import { isMethodNotFound, isInvalidRequest } from "./response/failure/errors"
 
 export const DEFAULT_LIMIT = "100kb"
 
 export interface BodyParserOptions {
     limit: string | number
-}
-
-interface Context {
-    request?: Request
-    response: Response
 }
 
 function getEncoding(req: IncomingMessage): string {
@@ -83,15 +76,10 @@ function getJson(
     req: IncomingMessage,
     options?: BodyParserOptions
 ): Promise<string> {
-    const types = [
-        "application/json",
-        "application/json-rpc",
-        "application/jsonrequest"
-    ]
+    const pattern = /^application\/(json|json-rpc|jsonrequest)(;.+)?$/i
+    const type: string = req.headers["content-type"] || ""
 
-    const type = (req.headers["content-type"] || "").toLowerCase()
-
-    if (!types.includes(type)) {
+    if (!pattern.test(type)) {
         return Promise.reject(
             createError(415, `unsupported content-type: "${type}"`, {
                 contentType: type,
@@ -103,63 +91,40 @@ function getJson(
     return getStream(req).then(getStreamBody(req, options))
 }
 
-function handleIncomingMessage(
-    service: Service,
-    req: IncomingMessage,
-    options?: BodyParserOptions
-): Promise<Context> {
-    return getJson(req, options).then((json: string) =>
-        parseRequest(json)
-            .chain(validateRequest)
-            .fold(
-                (error: FailureError) =>
-                    Promise.resolve({
-                        response: Failure(error) as Response
-                    }),
-                request =>
-                    handleRequest(request, service).then(response => ({
-                        request,
-                        response
-                    }))
-            )
-    )
-}
-
 export function createPostRoute(service: Service, options?: BodyParserOptions) {
     return function(
         req: IncomingMessage,
         res: ServerResponse,
         next: (error: any) => void
     ): void {
-        handleIncomingMessage(service, req, options)
-            .then(({ request, response }) => {
-                if (request && request.id === undefined) {
-                    res.statusCode = 204
+        getJson(req, options)
+            .then((json: string) => receiveJson(json, service))
+            .then(response => {
+                const json = (
+                    code: number,
+                    response: Response | Response[] | undefined
+                ): void => {
+                    res.writeHead(code, {
+                        "Content-Type": "application/json"
+                    })
+                    res.write(JSON.stringify(response))
                     res.end()
-                    return
                 }
 
-                if (isFailure(response)) {
-                    switch (response.error.code) {
-                        case METHOD_NOT_FOUND: {
-                            res.statusCode = 404
-                            break
-                        }
-                        case INVALID_REQUEST: {
-                            res.statusCode = 400
-                            break
-                        }
-                        default: {
-                            res.statusCode = 500
-                        }
-                    }
-                } else {
-                    res.statusCode = 200
+                if (response === undefined) {
+                    res.writeHead(204)
+                    return res.end()
                 }
 
-                res.setHeader("Content-Type", "application/json")
-                res.write(JSON.stringify(response))
-                res.end()
+                if (isFailure(response) && isMethodNotFound(response.error)) {
+                    return json(404, response)
+                }
+
+                if (isFailure(response) && isInvalidRequest(response.error)) {
+                    return json(400, response)
+                }
+
+                return json(200, response)
             })
             .catch(next)
     }

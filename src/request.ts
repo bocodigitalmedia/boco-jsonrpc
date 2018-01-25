@@ -1,5 +1,4 @@
 import {
-    validate as validateIO,
     intersection,
     union,
     interface as required,
@@ -15,9 +14,10 @@ import {
 
 import { FailureError } from "./response/failure"
 import { ParseError, InvalidRequest } from "./response/failure/errors"
-import { Either, tryCatch } from "fp-ts/lib/Either"
+import { Either, tryCatch, right, left } from "fp-ts/lib/Either"
 
 export type RequestParams = any[] | object
+export type JsonReviver = (key: string, value: any) => any
 
 export interface Request {
     jsonrpc: "2.0"
@@ -60,20 +60,23 @@ export function isRequest(a: any): a is Request {
     )
 }
 
+export function isRequestArray(a: any): a is Request[] {
+    return Array.isArray(a) && a.length > 0 && a.every(isRequest)
+}
+
 export function parseRequest(
     json: string,
-    msg?: string
+    reviver?: JsonReviver
 ): Either<FailureError, any> {
-    return tryCatch(() => JSON.parse(json)).mapLeft(({ name, message }) =>
-        ParseError({ name, message }, msg)
+    return tryCatch(() => JSON.parse(json, reviver)).mapLeft(
+        ({ name, message }) => ParseError({ name, message })
     )
 }
 
-export function validateRequest(
-    data: any,
-    msg?: string
-): Either<FailureError, Request> {
-    return validateIO(data, RequestSchema).mapLeft((_: any) =>
-        InvalidRequest(msg)
-    )
+export function validateRequest(a: any): Either<FailureError, Request | any[]> {
+    return isRequest(a) || isRequestArray(a) ? right(a) : left(InvalidRequest())
+}
+
+export function paramsToArguments(params?: RequestParams): any[] {
+    return params === undefined ? [] : Array.isArray(params) ? params : [params]
 }
