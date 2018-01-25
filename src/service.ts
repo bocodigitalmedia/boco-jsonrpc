@@ -1,9 +1,5 @@
-import {
-    MethodNotFound,
-    FailureError,
-    isFailureError,
-    InternalError
-} from "./response/failure/error"
+import { MethodNotFound, InternalError } from "./response/failure/errors"
+import { FailureError, isFailureError } from "./response/failure"
 
 import { Request } from "./request"
 import { left, right, Either } from "fp-ts/lib/Either"
@@ -45,7 +41,7 @@ export function getMethod(
         : left(MethodNotFound({ method: request.method }, msg))
 }
 
-export function toFailureError(error: any) {
+export function toFailureError(error: any): FailureError {
     if (isFailureError(error)) {
         return FailureError(error.code, error.message, error.data)
     }

@@ -1,5 +1,4 @@
 import {
-    TypeOf,
     validate as validateIO,
     intersection,
     union,
@@ -10,18 +9,14 @@ import {
     number,
     array,
     any,
-    object
+    object,
+    validate
 } from "io-ts"
 
-import {
-    FailureError,
-    ParseError,
-    InvalidRequest
-} from "./response/failure/error"
-
+import { FailureError } from "./response/failure"
+import { ParseError, InvalidRequest } from "./response/failure/errors"
 import { Either, tryCatch } from "fp-ts/lib/Either"
 
-export type RequestIO = TypeOf<typeof RequestIO>
 export type RequestParams = any[] | object
 
 export interface Request {
@@ -31,7 +26,7 @@ export interface Request {
     params?: RequestParams
 }
 
-export const RequestIO = intersection(
+const RequestSchema = intersection(
     [
         required({
             jsonrpc: literal("2.0"),
@@ -58,8 +53,11 @@ export function Request(
     }
 }
 
-export function fromRequestIO(io: RequestIO): Request {
-    return Request(io.method, io.params, io.id)
+export function isRequest(a: any): a is Request {
+    return validate(a, RequestSchema).fold(
+        (_: any) => false,
+        (_: Request) => true
+    )
 }
 
 export function parseRequest(
@@ -75,7 +73,7 @@ export function validateRequest(
     data: any,
     msg?: string
 ): Either<FailureError, Request> {
-    return validateIO(data, RequestIO)
-        .mapLeft((_: any) => InvalidRequest(msg))
-        .map(fromRequestIO)
+    return validateIO(data, RequestSchema).mapLeft((_: any) =>
+        InvalidRequest(msg)
+    )
 }

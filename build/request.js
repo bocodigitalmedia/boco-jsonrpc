@@ -1,9 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const io_ts_1 = require("io-ts");
-const error_1 = require("./response/failure/error");
+const errors_1 = require("./response/failure/errors");
 const Either_1 = require("fp-ts/lib/Either");
-exports.RequestIO = io_ts_1.intersection([
+const RequestSchema = io_ts_1.intersection([
     io_ts_1.interface({
         jsonrpc: io_ts_1.literal("2.0"),
         method: io_ts_1.string
@@ -17,17 +17,15 @@ function Request(method, params, id) {
     return Object.assign({ jsonrpc: "2.0", method }, (params !== undefined ? { params } : {}), (id !== undefined ? { id } : {}));
 }
 exports.Request = Request;
-function fromRequestIO(io) {
-    return Request(io.method, io.params, io.id);
+function isRequest(a) {
+    return io_ts_1.validate(a, RequestSchema).fold((_) => false, (_) => true);
 }
-exports.fromRequestIO = fromRequestIO;
+exports.isRequest = isRequest;
 function parseRequest(json, msg) {
-    return Either_1.tryCatch(() => JSON.parse(json)).mapLeft(({ name, message }) => error_1.ParseError({ name, message }, msg));
+    return Either_1.tryCatch(() => JSON.parse(json)).mapLeft(({ name, message }) => errors_1.ParseError({ name, message }, msg));
 }
 exports.parseRequest = parseRequest;
 function validateRequest(data, msg) {
-    return io_ts_1.validate(data, exports.RequestIO)
-        .mapLeft((_) => error_1.InvalidRequest(msg))
-        .map(fromRequestIO);
+    return io_ts_1.validate(data, RequestSchema).mapLeft((_) => errors_1.InvalidRequest(msg));
 }
 exports.validateRequest = validateRequest;

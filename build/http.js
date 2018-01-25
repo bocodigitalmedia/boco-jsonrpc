@@ -6,16 +6,14 @@ const getRawBody = require("raw-body");
 const service_1 = require("./service");
 const request_1 = require("./request");
 const failure_1 = require("./response/failure");
-const error_1 = require("./response/failure/error");
+const errors_1 = require("./response/failure/errors");
 exports.DEFAULT_LIMIT = "100kb";
 function getEncoding(req) {
     return req.headers["content-encoding"] || "identity";
 }
-exports.getEncoding = getEncoding;
 function getContentLength(req) {
     return req.headers["content-length"] || undefined;
 }
-exports.getContentLength = getContentLength;
 function getStream(req) {
     return new Promise((resolve, reject) => {
         const encoding = getEncoding(req);
@@ -41,7 +39,6 @@ function getStream(req) {
         }
     });
 }
-exports.getStream = getStream;
 function getStreamBody(req, { limit } = { limit: exports.DEFAULT_LIMIT }) {
     const encoding = getEncoding(req);
     const length = getContentLength(req);
@@ -50,7 +47,6 @@ function getStreamBody(req, { limit } = { limit: exports.DEFAULT_LIMIT }) {
         : { limit, encoding: "utf-8" };
     return (stream) => getRawBody(stream, getRawBodyOptions);
 }
-exports.getStreamBody = getStreamBody;
 function getJson(req, options) {
     const types = [
         "application/json",
@@ -89,11 +85,11 @@ function createPostRoute(service, options) {
             }
             if (failure_1.isFailure(response)) {
                 switch (response.error.code) {
-                    case error_1.METHOD_NOT_FOUND: {
+                    case errors_1.METHOD_NOT_FOUND: {
                         res.statusCode = 404;
                         break;
                     }
-                    case error_1.INVALID_REQUEST: {
+                    case errors_1.INVALID_REQUEST: {
                         res.statusCode = 400;
                         break;
                     }

@@ -9,5 +9,5 @@ exports.toFailureError = service_1.toFailureError;
 var http_1 = require("./http");
 exports.handleIncomingMessage = http_1.handleIncomingMessage;
 exports.createPostRoute = http_1.createPostRoute;
-var error_1 = require("./response/failure/error");
-exports.failureErrorFactory = error_1.factory;
+var failure_1 = require("./response/failure");
+exports.FailureErrorFactory = failure_1.FailureErrorFactory;

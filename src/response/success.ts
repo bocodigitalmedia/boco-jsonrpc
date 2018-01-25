@@ -22,7 +22,7 @@ export function Success(
     return { jsonrpc: "2.0", result, id }
 }
 
-export const SuccessSchema = required({
+const SuccessSchema = required({
     jsonrpc: literal("2.0"),
     result: any,
     id: union([string, number, nullType])

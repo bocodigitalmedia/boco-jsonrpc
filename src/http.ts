@@ -9,11 +9,8 @@ import { Service, handleRequest } from "./service"
 import { validateRequest, parseRequest, Request } from "./request"
 import { Response } from "./response"
 import { Failure, isFailure } from "./response/failure"
-import {
-    FailureError,
-    METHOD_NOT_FOUND,
-    INVALID_REQUEST
-} from "./response/failure/error"
+import { FailureError } from "./response/failure"
+import { METHOD_NOT_FOUND, INVALID_REQUEST } from "./response/failure/errors"
 
 export const DEFAULT_LIMIT = "100kb"
 
@@ -26,15 +23,15 @@ export interface Context {
     response: Response
 }
 
-export function getEncoding(req: IncomingMessage): string {
+function getEncoding(req: IncomingMessage): string {
     return req.headers["content-encoding"] || "identity"
 }
 
-export function getContentLength(req: IncomingMessage): string | void {
+function getContentLength(req: IncomingMessage): string | void {
     return req.headers["content-length"] || undefined
 }
 
-export function getStream(req: IncomingMessage): Promise<Readable> {
+function getStream(req: IncomingMessage): Promise<Readable> {
     return new Promise((resolve, reject) => {
         const encoding = getEncoding(req)
 
@@ -67,7 +64,7 @@ export function getStream(req: IncomingMessage): Promise<Readable> {
     })
 }
 
-export function getStreamBody(
+function getStreamBody(
     req: IncomingMessage,
     { limit }: Options = { limit: DEFAULT_LIMIT }
 ) {
@@ -82,7 +79,10 @@ export function getStreamBody(
     return (stream: Readable) => getRawBody(stream, getRawBodyOptions)
 }
 
-export function getJson(req: IncomingMessage, options?: Options) {
+export function getJson(
+    req: IncomingMessage,
+    options?: Options
+): Promise<string> {
     const types = [
         "application/json",
         "application/json-rpc",

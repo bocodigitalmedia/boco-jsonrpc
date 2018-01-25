@@ -1,11 +1,17 @@
-import { InvalidParams } from "./response/failure/error"
+import { InvalidParams } from "./response/failure/errors"
 import { Either, right, left } from "fp-ts/lib/Either"
 import { RequestParams } from "./request"
 
+export type PassFn = (args: any[]) => Either<InvalidParams, any[]>
+export type FailFn = (
+    data?: any,
+    message?: string
+) => Either<InvalidParams, any[]>
+
 export type ValidateParamsFn = (
     params: RequestParams | undefined,
-    pass_: typeof pass,
-    fail_: typeof fail
+    pass: PassFn,
+    fail: FailFn
 ) => Either<InvalidParams, any[]>
 
 export interface Method {
@@ -36,10 +42,5 @@ export function apply(
     )
 }
 
-function pass(args: any[]): Either<InvalidParams, any[]> {
-    return right(args)
-}
-
-function fail(data?: any, message?: string): Either<InvalidParams, any[]> {
-    return left(InvalidParams(data, message))
-}
+const pass: PassFn = args => right(args)
+const fail: FailFn = (data, message) => left(InvalidParams(data, message))
