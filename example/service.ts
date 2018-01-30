@@ -1,4 +1,4 @@
-import { Service, InvalidParams } from "../src"
+import { Service, InvalidParamsError } from ".."
 import * as math from "./math"
 
 const isNumber = n => typeof n === "number"
@@ -7,7 +7,6 @@ const isNumberTuple = (a: any): a is [number, number] =>
 
 export const service = Service(math, {
     paramsToArgs: (method, params) => {
-        console.log(method, params)
         if (isNumberTuple(params)) {
             return params
         } else {
@@ -15,5 +14,7 @@ export const service = Service(math, {
         }
     },
     transformError: (error: any) =>
-        error === "FOO" ? InvalidParams("must be a tuple of numbers") : error
+        error === "FOO"
+            ? InvalidParamsError("must be a tuple of numbers")
+            : error
 })

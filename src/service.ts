@@ -3,15 +3,19 @@ import {
     parseRequest,
     validateRequest,
     RequestParams,
-    paramsToArguments,
+    paramsToArgs,
     JsonReviver
 } from "./request"
 
-import { MethodNotFound } from "./response/failure/errors"
-import { FailureError, failureErrorFrom } from "./response/failure"
-import { Success } from "./response/success"
-import { Failure } from "./response/failure"
-import { Response } from "./response"
+import {
+    Success,
+    Failure,
+    Response,
+    FailureError,
+    MethodNotFoundError,
+    failureErrorFrom
+} from "./response"
+
 import { left, right, Either } from "fp-ts/lib/Either"
 import { identity } from "fp-ts/lib/function"
 
@@ -20,6 +24,7 @@ export interface Methods {
 }
 
 export type TransformErrorFn = (error: any) => any
+
 export type ParamsToArgsFn = (method: string, params?: RequestParams) => any[]
 
 export interface Service extends ServiceOptions {
@@ -46,7 +51,7 @@ export function Service(
 }
 
 function defaultParamsToArgs(_method: string, params?: RequestParams) {
-    return paramsToArguments(params)
+    return paramsToArgs(params)
 }
 
 function hasMethod(key: string, methods: Methods): boolean {
@@ -62,7 +67,7 @@ function getMethod(
 ): Either<FailureError, Function> {
     return hasMethod(key, methods)
         ? right(methods[key])
-        : left(MethodNotFound(key))
+        : left(MethodNotFoundError(key))
 }
 
 export function receiveRequest(

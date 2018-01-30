@@ -1,19 +1,23 @@
+import {
+    Response,
+    isFailure,
+    isMethodNotFoundError,
+    isInvalidRequestError
+} from "../response"
+
 import { IncomingMessage, ServerResponse } from "http"
 import { createGunzip, createInflate } from "zlib"
 import { Readable } from "stream"
+import { Service, receiveJson } from "../service"
 
 import * as createError from "http-errors"
 import * as getRawBody from "raw-body"
 
-import { Service, receiveJson } from "./service"
-import { Response } from "./response"
-import { isFailure } from "./response/failure"
-import { isMethodNotFound, isInvalidRequest } from "./response/failure/errors"
+export const DEFAULT_LIMIT = "150kb"
 
-export const DEFAULT_LIMIT = "100kb"
-
-export interface BodyParserOptions {
+export interface PostRouteOptions {
     limit: string | number
+    replacer?: (key: string, value: any) => any
 }
 
 function getEncoding(req: IncomingMessage): string {
@@ -24,7 +28,7 @@ function getContentLength(req: IncomingMessage): string | void {
     return req.headers["content-length"] || undefined
 }
 
-function getStream(req: IncomingMessage): Promise<Readable> {
+function getBodyStream(req: IncomingMessage): Promise<Readable> {
     return new Promise((resolve, reject) => {
         const encoding = getEncoding(req)
 
@@ -57,24 +61,23 @@ function getStream(req: IncomingMessage): Promise<Readable> {
     })
 }
 
-function getStreamBody(
-    req: IncomingMessage,
-    { limit }: BodyParserOptions = { limit: DEFAULT_LIMIT }
-) {
-    const encoding = getEncoding(req)
+function getBody(req: IncomingMessage, { limit }: getRawBody.Options = {}) {
+    const isIdentity = getEncoding(req) === "identity"
     const length = getContentLength(req)
 
     const getRawBodyOptions =
-        encoding === "identity" && length !== undefined
+        isIdentity && length !== undefined
             ? { limit, length, encoding: "utf-8" }
             : { limit, encoding: "utf-8" }
 
-    return (stream: Readable) => getRawBody(stream, getRawBodyOptions)
+    return getBodyStream(req).then(stream =>
+        getRawBody(stream, getRawBodyOptions)
+    )
 }
 
 function getJson(
     req: IncomingMessage,
-    options?: BodyParserOptions
+    options?: getRawBody.Options
 ): Promise<string> {
     const pattern = /^application\/(json|json-rpc|jsonrequest)(;.+)?$/i
     const type: string = req.headers["content-type"] || ""
@@ -88,16 +91,19 @@ function getJson(
         )
     }
 
-    return getStream(req).then(getStreamBody(req, options))
+    return getBody(req, options)
 }
 
-export function createPostRoute(service: Service, options?: BodyParserOptions) {
+export function createPostRoute(
+    service: Service,
+    { limit = DEFAULT_LIMIT, replacer }: Partial<PostRouteOptions> = {}
+) {
     return function(
         req: IncomingMessage,
         res: ServerResponse,
         next: (error: any) => void
     ): void {
-        getJson(req, options)
+        getJson(req, { limit })
             .then((json: string) => receiveJson(json, service))
             .then(response => {
                 const json = (
@@ -107,7 +113,7 @@ export function createPostRoute(service: Service, options?: BodyParserOptions) {
                     res.writeHead(code, {
                         "Content-Type": "application/json"
                     })
-                    res.write(JSON.stringify(response))
+                    res.write(JSON.stringify(response, replacer))
                     res.end()
                 }
 
@@ -116,11 +122,17 @@ export function createPostRoute(service: Service, options?: BodyParserOptions) {
                     return res.end()
                 }
 
-                if (isFailure(response) && isMethodNotFound(response.error)) {
+                if (
+                    isFailure(response) &&
+                    isMethodNotFoundError(response.error)
+                ) {
                     return json(404, response)
                 }
 
-                if (isFailure(response) && isInvalidRequest(response.error)) {
+                if (
+                    isFailure(response) &&
+                    isInvalidRequestError(response.error)
+                ) {
                     return json(400, response)
                 }
 

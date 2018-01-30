@@ -1,7 +1,6 @@
-export { createPostRoute } from "./http";
-export { Request, RequestParams, isRequest, parseRequest, validateRequest } from "./request";
-export { Response } from "./response";
-export { Service, ServiceOptions, Methods, TransformErrorFn, receiveRequest, receiveRequests, receiveJson } from "./service";
-export { Failure, isFailure, FailureError, isFailureError, isFailureErrorWithCode, FailureErrorFactory } from "./response/failure";
-export * from "./response/failure/errors";
-export { Success, isSuccess } from "./response/success";
+import * as fetchClient from "./client/fetch";
+import * as httpServer from "./server/http";
+export * from "./request";
+export * from "./response";
+export * from "./service";
+export { fetchClient, httpServer };

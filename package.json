@@ -10,7 +10,6 @@
         "typescript": "^2.6.2"
     },
     "dependencies": {
-        "@types/express": "^4.11.0",
         "@types/http-errors": "^1.6.1",
         "@types/node": "^9.3.0",
         "http-errors": "^1.6.2",
@@ -18,8 +17,8 @@
         "raw-body": "^2.3.2"
     },
     "scripts": {
-        "build": "rimraf build && tsc -p tsconfig.json",
-        "watch": "rimraf build && tsc -w -p tsconfig.json"
+        "build": "rimraf lib && tsc -p tsconfig.json",
+        "watch": "rimraf lib && tsc -w -p tsconfig.json"
     },
     "description": "Well typed JSON RPC 2.0 server and client (typescript) Edit",
     "repository": "git@github.com:bocodigitalmedia/boco-jsonrpc.git",
