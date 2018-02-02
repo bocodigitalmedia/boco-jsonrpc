@@ -1,5 +1,5 @@
 {
-    "version": "0.1.0",
+    "version": "0.2.0",
     "main": "dist/cjs/index.js",
     "module": "dist/esm/index.js",
     "typings": "dist/esm/index.d.ts",
@@ -26,5 +26,12 @@
     "name": "@bocodigitalmedia/jsonrpc",
     "description": "JSON RPC Server/Client",
     "repository": "git@github.com:bocodigitalmedia/jsonrpc.git",
+    "dependencies": {
+        "@types/http-errors": "^1.6.1",
+        "@types/node": "^9.3.0",
+        "http-errors": "^1.6.2",
+        "io-ts": "^0.9.5",
+        "raw-body": "^2.3.2"
+    },
     "author": "Christian Bradley <christian.bradley@bocodigital.com>"
 }
