@@ -1,4 +1,4 @@
-import { FooError, BarError } from "./errors"
+import { FooError, BarError } from './errors'
 
 export function add(a: number, b: number) {
     return a + b
@@ -17,5 +17,5 @@ export function bar(a: number, b: number) {
 }
 
 export function baz() {
-    throw "BAZ"
+    throw 'BAZ'
 }

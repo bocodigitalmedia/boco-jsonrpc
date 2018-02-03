@@ -1,108 +1,176 @@
 import {
-    interface as required,
-    partial as optional,
-    intersection,
-    union,
-    strict,
-    validate,
-    string,
-    number,
-    nullType,
-    literal,
-    any
-} from "io-ts"
+    Schema,
+    validate as schemaValidate,
+    SyncValidateFn,
+    ValidationFailed
+} from '@bocodigitalmedia/jsonschema'
 
-export type Response = Success | Failure
-
-export interface Cases<T> {
-    success: (a: Success) => T
-    failure: (b: Failure) => T
+enum ResponseSchemaRef {
+    error = '#/definitions/error',
+    response = '#/definitions/response',
+    success = '#/definitions/success',
+    failure = '#/definitions/failure',
+    batch = '#/definitions/batch',
+    item = '#/definitions/item'
 }
 
-export function caseOf<T>(
-    { success, failure }: Cases<T>,
-    response: Response
-): T {
-    return isSuccess(response) ? success(response) : failure(response)
+export const responseSchema: Schema = {
+    $schema: 'http://json-schema.org/draft-07/schema#',
+    $id:
+        'https://raw.githubusercontent.com/bocodigitalmedia/jsonrpc/master/schema/response.json',
+    description: 'A JSON RPC 2.0 response',
+    oneOf: [
+        { $ref: ResponseSchemaRef.item },
+        { $ref: ResponseSchemaRef.batch }
+    ],
+    definitions: {
+        error: {
+            description: 'Description of a failure error',
+            type: 'object',
+            required: ['code', 'message'],
+            additionalProperties: false,
+            properties: {
+                code: { type: 'integer' },
+                message: { type: 'string' },
+                data: true
+            }
+        },
+        success: {
+            description: 'A response indicating success',
+            type: 'object',
+            required: ['jsonrpc', 'result', 'id'],
+            additionalProperties: false,
+            properties: {
+                jsonrpc: { const: '2.0' },
+                result: true,
+                id: { type: ['string', 'number', 'null'] }
+            }
+        },
+        failure: {
+            description: 'A response indicating failure',
+            type: 'object',
+            required: ['jsonrpc', 'id', 'error'],
+            additionalProperties: false,
+            properties: {
+                jsonrpc: { const: '2.0' },
+                error: { $ref: ResponseSchemaRef.error },
+                id: { type: ['string', 'number', 'null'] }
+            }
+        },
+        item: {
+            description: 'A response indicating success or failure',
+            oneOf: [
+                { $ref: ResponseSchemaRef.success },
+                { $ref: ResponseSchemaRef.failure }
+            ]
+        },
+        batch: {
+            description: 'An array of responses',
+            type: 'array',
+            minItems: 1,
+            additionalItems: false,
+            items: { $ref: ResponseSchemaRef.item }
+        }
+    }
+}
+
+const validateRef = (ref: ResponseSchemaRef): SyncValidateFn =>
+    schemaValidate(
+        { $ref: `${responseSchema.$id}${ref}` },
+        { schemas: [responseSchema] }
+    )
+
+export const responseSchemaValidate = schemaValidate(responseSchema)
+export const responseSchemaValidateItem = validateRef(ResponseSchemaRef.item)
+export const responseSchemaValidateError = validateRef(ResponseSchemaRef.error)
+export const responseSchemaValidateSuccess = validateRef(
+    ResponseSchemaRef.success
+)
+export const responseSchemaValidateFailure = validateRef(
+    ResponseSchemaRef.failure
+)
+export const responseSchemaValidateBatch = validateRef(ResponseSchemaRef.batch)
+
+import { Either } from 'fp-ts/lib/either'
+
+export interface FailureError<C extends number = number> {
+    code: C
+    message: string
+    data?: any
+}
+
+export interface Success {
+    jsonrpc: '2.0'
+    result: any
+    id: string | number | null
+}
+
+export interface Failure<C extends number = number> {
+    jsonrpc: '2.0'
+    error: FailureError<C>
+    id: number | string | null
+}
+
+export type ResponseItem = Success | Failure
+
+export interface ResponseBatch extends Array<ResponseItem> {
+    0: ResponseItem
+}
+
+export type Response = ResponseItem | ResponseBatch
+
+const eitherToBool = (e: Either<any, any>) => e.fold(_ => false, _ => true)
+
+export class InvalidResponseError extends Error {
+    constructor(public data: ValidationFailed['data']) {
+        super('Invalid Response')
+    }
+}
+
+export function validateResponse(
+    a: any
+): Either<InvalidResponseError, Response> {
+    return responseSchemaValidate(a).mapLeft(
+        ({ data }) => new InvalidResponseError(data)
+    )
 }
 
 export function isResponse(a: any): a is Response {
-    return isFailure(a) || isSuccess(a)
+    return eitherToBool(responseSchemaValidate(a))
 }
 
-export function isBatchResponse(a: any): a is Response[] {
-    return Array.isArray(a) && a.length > 0 && a.every(isResponse)
+export function isResponseItem(a: any): a is ResponseItem {
+    return eitherToBool(responseSchemaValidateItem(a))
 }
 
-// ----------------------------------------------------------------------------
-// Success
-// ----------------------------------------------------------------------------
+export function isResponseBatch(a: any): a is ResponseBatch {
+    return eitherToBool(responseSchemaValidateBatch(a))
+}
 
-export interface Success {
-    jsonrpc: "2.0"
-    result: any
-    id: string | number | null
+export function isSuccess(a: any): a is Success {
+    return eitherToBool(responseSchemaValidateSuccess(a))
+}
+
+export function isFailure(a: any): a is Failure {
+    return eitherToBool(responseSchemaValidateFailure(a))
+}
+
+export function isFailureError(a: any): a is FailureError {
+    return eitherToBool(responseSchemaValidateError(a))
 }
 
 export function Success(
     result: any,
     id: string | number | null = null
 ): Success {
-    return { jsonrpc: "2.0", result, id }
+    return { jsonrpc: '2.0', result, id }
 }
-
-const SuccessSchema = strict({
-    jsonrpc: literal("2.0"),
-    result: any,
-    id: union([string, number, nullType])
-})
-
-export function isSuccess(a: any): a is Success {
-    return validate(a, SuccessSchema).fold(_ => false, (_: Success) => true)
-}
-
-// ----------------------------------------------------------------------------
-// Failure
-// ----------------------------------------------------------------------------
-export interface Failure<C extends number = number> {
-    jsonrpc: "2.0"
-    error: FailureError<C>
-    id: number | string | null
-}
-
-const FailureSchema = required({
-    jsonrpc: literal("2.0"),
-    error: intersection([
-        required({
-            message: string,
-            code: number
-        }),
-        optional({
-            data: any
-        })
-    ]),
-    id: union([number, string, nullType])
-})
 
 export function Failure<C extends number = number>(
     error: FailureError<C>,
     id: number | string | null = null
 ): Failure<C> {
-    return { jsonrpc: "2.0", error, id }
-}
-
-export function isFailure(value: any): value is Failure {
-    return validate(value, FailureSchema).fold(_ => false, (_: Failure) => true)
-}
-
-// ----------------------------------------------------------------------------
-// FailureError
-// ----------------------------------------------------------------------------
-
-export interface FailureError<C extends number = number> {
-    code: C
-    message: string
-    data?: any
+    return { jsonrpc: '2.0', error, id }
 }
 
 export function FailureError<C extends number = number>(
@@ -112,8 +180,6 @@ export function FailureError<C extends number = number>(
 ): FailureError<C> {
     return { code, message, ...(data !== undefined ? { data } : {}) }
 }
-
-const FailureErrorSchema = FailureSchema.props.error
 
 export function failureErrorFactory<C extends number = number>(
     code: C,
@@ -128,9 +194,9 @@ export function failureErrorFrom(error: any): FailureError {
         return FailureError(error.code, error.message, error.data)
     }
 
-    if (typeof error === "object" && error.stack) {
+    if (typeof error === 'object' && error.stack) {
         const errorData = Object.getOwnPropertyNames(error)
-            .filter(k => k !== "stack")
+            .filter(k => k !== 'stack')
             .reduce((memo, key) => ({ ...memo, [key]: error[key] }), {
                 name: error.name
             })
@@ -139,13 +205,6 @@ export function failureErrorFrom(error: any): FailureError {
     }
 
     return InternalError(error)
-}
-
-export function isFailureError(e: any): e is FailureError {
-    return validate(e, FailureErrorSchema).fold(
-        (_: any) => false,
-        (_: FailureError) => true
-    )
 }
 
 export function isFailureErrorWithCode<C extends number = number>(code: C) {
@@ -169,23 +228,23 @@ export const METHOD_NOT_FOUND_ERROR = -32601
 export const INVALID_PARAMS_ERROR = -32602
 export const INTERNAL_ERROR = -32603
 
-export const ParseError = failureErrorFactory(PARSE_ERROR, "Parse error")
+export const ParseError = failureErrorFactory(PARSE_ERROR, 'Parse error')
 
 export const InvalidRequestError = failureErrorFactory(
     INVALID_REQUEST_ERROR,
-    "Invalid request"
+    'Invalid request'
 )
 export const MethodNotFoundError = failureErrorFactory(
     METHOD_NOT_FOUND_ERROR,
-    "Method not found"
+    'Method not found'
 )
 export const InvalidParamsError = failureErrorFactory(
     INVALID_PARAMS_ERROR,
-    "Invalid params"
+    'Invalid params'
 )
 export const InternalError = failureErrorFactory(
     INTERNAL_ERROR,
-    "Internal error"
+    'Internal error'
 )
 
 export const isParseError = isFailureErrorWithCode(PARSE_ERROR)

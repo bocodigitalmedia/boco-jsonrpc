@@ -1,34 +1,48 @@
-export declare type Response = Success | Failure;
-export interface Cases<T> {
-    success: (a: Success) => T;
-    failure: (b: Failure) => T;
-}
-export declare function caseOf<T>({success, failure}: Cases<T>, response: Response): T;
-export declare function isResponse(a: any): a is Response;
-export declare function isBatchResponse(a: any): a is Response[];
-export interface Success {
-    jsonrpc: "2.0";
-    result: any;
-    id: string | number | null;
-}
-export declare function Success(result: any, id?: string | number | null): Success;
-export declare function isSuccess(a: any): a is Success;
-export interface Failure<C extends number = number> {
-    jsonrpc: "2.0";
-    error: FailureError<C>;
-    id: number | string | null;
-}
-export declare function Failure<C extends number = number>(error: FailureError<C>, id?: number | string | null): Failure<C>;
-export declare function isFailure(value: any): value is Failure;
+import { Schema, SyncValidateFn, ValidationFailed } from '@bocodigitalmedia/jsonschema';
+export declare const responseSchema: Schema;
+export declare const responseSchemaValidate: SyncValidateFn;
+export declare const responseSchemaValidateItem: SyncValidateFn;
+export declare const responseSchemaValidateError: SyncValidateFn;
+export declare const responseSchemaValidateSuccess: SyncValidateFn;
+export declare const responseSchemaValidateFailure: SyncValidateFn;
+export declare const responseSchemaValidateBatch: SyncValidateFn;
+import { Either } from 'fp-ts/lib/either';
 export interface FailureError<C extends number = number> {
     code: C;
     message: string;
     data?: any;
 }
+export interface Success {
+    jsonrpc: '2.0';
+    result: any;
+    id: string | number | null;
+}
+export interface Failure<C extends number = number> {
+    jsonrpc: '2.0';
+    error: FailureError<C>;
+    id: number | string | null;
+}
+export declare type ResponseItem = Success | Failure;
+export interface ResponseBatch extends Array<ResponseItem> {
+    0: ResponseItem;
+}
+export declare type Response = ResponseItem | ResponseBatch;
+export declare class InvalidResponseError extends Error {
+    data: ValidationFailed['data'];
+    constructor(data: ValidationFailed['data']);
+}
+export declare function validateResponse(a: any): Either<InvalidResponseError, Response>;
+export declare function isResponse(a: any): a is Response;
+export declare function isResponseItem(a: any): a is ResponseItem;
+export declare function isResponseBatch(a: any): a is ResponseBatch;
+export declare function isSuccess(a: any): a is Success;
+export declare function isFailure(a: any): a is Failure;
+export declare function isFailureError(a: any): a is FailureError;
+export declare function Success(result: any, id?: string | number | null): Success;
+export declare function Failure<C extends number = number>(error: FailureError<C>, id?: number | string | null): Failure<C>;
 export declare function FailureError<C extends number = number>(code: C, message: string, data?: any): FailureError<C>;
 export declare function failureErrorFactory<C extends number = number>(code: C, defaultMessage: string): (data?: any, message?: string) => FailureError<C>;
 export declare function failureErrorFrom(error: any): FailureError;
-export declare function isFailureError(e: any): e is FailureError;
 export declare function isFailureErrorWithCode<C extends number = number>(code: C): (e: any) => e is FailureError<C>;
 export declare type ParseError = FailureError<typeof PARSE_ERROR>;
 export declare type InvalidRequestError = FailureError<typeof INVALID_REQUEST_ERROR>;

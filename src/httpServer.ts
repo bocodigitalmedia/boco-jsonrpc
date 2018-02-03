@@ -3,17 +3,17 @@ import {
     isFailure,
     isMethodNotFoundError,
     isInvalidRequestError
-} from "../response"
+} from './response'
 
-import { IncomingMessage, ServerResponse } from "http"
-import { createGunzip, createInflate } from "zlib"
-import { Readable } from "stream"
-import { Service, receiveJson } from "../service"
+import { IncomingMessage, ServerResponse } from 'http'
+import { createGunzip, createInflate } from 'zlib'
+import { Readable } from 'stream'
+import { Server, receiveRequestJson } from './server'
 
-import * as createError from "http-errors"
-import * as getRawBody from "raw-body"
+import * as createError from 'http-errors'
+import * as getRawBody from 'raw-body'
 
-export const DEFAULT_LIMIT = "150kb"
+const DEFAULT_LIMIT = '150kb'
 
 export interface PostRouteOptions {
     limit: string | number
@@ -21,11 +21,11 @@ export interface PostRouteOptions {
 }
 
 function getEncoding(req: IncomingMessage): string {
-    return req.headers["content-encoding"] || "identity"
+    return req.headers['content-encoding'] || 'identity'
 }
 
 function getContentLength(req: IncomingMessage): string | void {
-    return req.headers["content-length"] || undefined
+    return req.headers['content-length'] || undefined
 }
 
 function getBodyStream(req: IncomingMessage): Promise<Readable> {
@@ -33,15 +33,15 @@ function getBodyStream(req: IncomingMessage): Promise<Readable> {
         const encoding = getEncoding(req)
 
         switch (encoding) {
-            case "deflate": {
+            case 'deflate': {
                 resolve(req.pipe(createInflate()))
                 break
             }
-            case "gzip": {
+            case 'gzip': {
                 resolve(req.pipe(createGunzip()))
                 break
             }
-            case "identity": {
+            case 'identity': {
                 resolve(req)
                 break
             }
@@ -52,7 +52,7 @@ function getBodyStream(req: IncomingMessage): Promise<Readable> {
                         `unsupported content encoding "${encoding}"`,
                         {
                             encoding: encoding,
-                            type: "encoding.unsupported"
+                            type: 'encoding.unsupported'
                         }
                     )
                 )
@@ -62,13 +62,13 @@ function getBodyStream(req: IncomingMessage): Promise<Readable> {
 }
 
 function getBody(req: IncomingMessage, { limit }: getRawBody.Options = {}) {
-    const isIdentity = getEncoding(req) === "identity"
+    const isIdentity = getEncoding(req) === 'identity'
     const length = getContentLength(req)
 
     const getRawBodyOptions =
         isIdentity && length !== undefined
-            ? { limit, length, encoding: "utf-8" }
-            : { limit, encoding: "utf-8" }
+            ? { limit, length, encoding: 'utf-8' }
+            : { limit, encoding: 'utf-8' }
 
     return getBodyStream(req).then(stream =>
         getRawBody(stream, getRawBodyOptions)
@@ -80,13 +80,13 @@ function getJson(
     options?: getRawBody.Options
 ): Promise<string> {
     const pattern = /^application\/(json|json-rpc|jsonrequest)(;.+)?$/i
-    const type: string = req.headers["content-type"] || ""
+    const type: string = req.headers['content-type'] || ''
 
     if (!pattern.test(type)) {
         return Promise.reject(
             createError(415, `unsupported content-type: "${type}"`, {
                 contentType: type,
-                type: "content_type.unsupported"
+                type: 'content_type.unsupported'
             })
         )
     }
@@ -95,7 +95,7 @@ function getJson(
 }
 
 export function createPostRoute(
-    service: Service,
+    server: Server,
     { limit = DEFAULT_LIMIT, replacer }: Partial<PostRouteOptions> = {}
 ) {
     return function(
@@ -104,14 +104,14 @@ export function createPostRoute(
         next: (error: any) => void
     ): void {
         getJson(req, { limit })
-            .then((json: string) => receiveJson(json, service))
+            .then((json: string) => receiveRequestJson(json, server))
             .then(response => {
                 const json = (
                     code: number,
                     response: Response | Response[] | undefined
                 ): void => {
                     res.writeHead(code, {
-                        "Content-Type": "application/json"
+                        'Content-Type': 'application/json'
                     })
                     res.write(JSON.stringify(response, replacer))
                     res.end()

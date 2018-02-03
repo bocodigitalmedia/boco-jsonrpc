@@ -1,11 +1,20 @@
-import * as Express from "express"
-import { service } from "./service"
-import { httpServer } from ".."
+import { Server, InvalidParamsError } from '..'
+import * as math from './math'
 
-const app = Express()
+const isNumber = n => typeof n === 'number'
+const isNumberTuple = (a: any): a is [number, number] =>
+    Array.isArray(a) && a.length === 2 && a.every(isNumber)
 
-app.post("/math", httpServer.createPostRoute(service, { limit: "100kb" }))
-
-app.listen(3000, () =>
-    process.stdout.write("JSON-RPC server started on port 3000\n")
-)
+export const server = Server(math, {
+    paramsToArgs: (method, params) => {
+        if (isNumberTuple(params)) {
+            return params
+        } else {
+            throw 'FOO'
+        }
+    },
+    transformError: (error: any) =>
+        error === 'FOO'
+            ? InvalidParamsError('must be a tuple of numbers')
+            : error
+})

@@ -1,52 +1,37 @@
-import fetch from "node-fetch-polyfill"
-
 import {
-    Request,
-    isBatchRequest,
-    isResponse,
-    isNotification,
-    isFailure,
+    RequestItem,
     isSuccess,
-    fetchClient
-} from ".."
+    FetchClient,
+    fetchClientRequest,
+    ResponseItem
+} from '..'
+
+import fetch from 'node-fetch-polyfill'
 
 Object.assign(global, { fetch })
+
 let i: number = 0
 
-const client = fetchClient.FetchClient("http://localhost:3000/math")
+const client = FetchClient('http://localhost:3000/math')
 
-const req = method => (...params: any[]) => Request(method, params, i++)
-const fn = method => (...params: any[]) => send(Request(method, params, i++))
+const logResponse = (req: RequestItem) => (res?: ResponseItem) =>
+    console.log(
+        req.method,
+        req.params,
+        res === undefined
+            ? 'No response'
+            : isSuccess(res) ? res.result : res.error.message
+    )
 
-const [add, sub, foo, bar, baz, qux] = [
-    "add",
-    "sub",
-    "foo",
-    "bar",
-    "baz",
-    "qux"
-].map(fn)
+const send = (req: RequestItem) =>
+    fetchClientRequest(req, client).then(logResponse(req))
 
-const send = (req: Request) =>
-    fetchClient
-        .sendRequest(req, client)
-        .then(
-            (response: Response) =>
-                isSuccess(response)
-                    ? Promise.resolve(response)
-                    : Promise.reject(response)
-        )
-        .then(
-            response => console.log("OK", response),
-            error =>
-                isFailure(error)
-                    ? console.log("KO", error)
-                    : console.error(error)
-        )
+const exec = method => (...params: any[]) =>
+    send(RequestItem(method, params, i++))
 
-add(1, 2)
-sub(5, 5)
-foo(1, 2)
-bar(1, 2)
-baz(1, 2)
-qux(1, 2)
+exec('add')(1, 2)
+exec('sub')(5, 5)
+exec('foo')(1, 2)
+exec('bar')(1, 2)
+exec('baz')(1, 2)
+exec('qux')(1, 2)

@@ -1,23 +1,30 @@
 import {
     Request,
+    RequestItem,
+    RequestBatch,
     parseRequest,
     validateRequest,
+    isRequestBatch,
     RequestParams,
-    paramsToArgs,
+    requestParamsToArgs,
     JsonReviver
-} from "./request"
+} from './request'
 
 import {
     Success,
     Failure,
     Response,
+    ResponseItem,
+    ResponseBatch,
+    isResponse,
+    isResponseBatch,
     FailureError,
     MethodNotFoundError,
     failureErrorFrom
-} from "./response"
+} from './response'
 
-import { left, right, Either } from "fp-ts/lib/Either"
-import { identity } from "fp-ts/lib/function"
+import { left, right, Either } from 'fp-ts/lib/Either'
+import { identity } from 'fp-ts/lib/function'
 
 export interface Methods {
     [key: string]: Function
@@ -27,7 +34,7 @@ export type TransformErrorFn = (error: any) => any
 
 export type ParamsToArgsFn = (method: string, params?: RequestParams) => any[]
 
-export interface Service extends ServiceOptions {
+export interface Server extends ServiceOptions {
     methods: Methods
 }
 
@@ -36,13 +43,13 @@ export interface ServiceOptions {
     paramsToArgs: ParamsToArgsFn
 }
 
-export function Service(
+export function Server(
     methods: Methods,
     {
         transformError = identity,
         paramsToArgs = defaultParamsToArgs
     }: Partial<ServiceOptions> = {}
-): Service {
+): Server {
     return {
         methods,
         transformError,
@@ -51,13 +58,13 @@ export function Service(
 }
 
 function defaultParamsToArgs(_method: string, params?: RequestParams) {
-    return paramsToArgs(params)
+    return requestParamsToArgs(params)
 }
 
 function hasMethod(key: string, methods: Methods): boolean {
     return (
         Object.prototype.hasOwnProperty.apply(methods, [key]) &&
-        typeof methods[key] === "function"
+        typeof methods[key] === 'function'
     )
 }
 
@@ -70,10 +77,10 @@ function getMethod(
         : left(MethodNotFoundError(key))
 }
 
-export function receiveRequest(
-    { method, params, id }: Request,
-    { transformError, paramsToArgs, methods }: Service
-): Promise<Response | void> {
+export function receiveRequestItem(
+    { method, params, id }: RequestItem,
+    { transformError, paramsToArgs, methods }: Server
+): Promise<ResponseItem | void> {
     const handleError = (error: any) => failureErrorFrom(transformError(error))
 
     return getMethod(method, methods)
@@ -92,37 +99,45 @@ export function receiveRequest(
         .then(response => (id === undefined ? undefined : response))
 }
 
-export function receiveRequests(
-    requests: Request[],
-    service: Service
-): Promise<Response[] | void> {
-    const promises = requests.map(request => receiveRequest(request, service))
+export function receiveRequestBatch(
+    requests: RequestBatch,
+    service: Server
+): Promise<ResponseBatch | void> {
+    const promises = requests.map(request =>
+        receiveRequestItem(request, service)
+    )
 
     return Promise.all(promises)
-        .then(responses => responses.filter(v => v !== undefined) as Response[])
-        .then(responses => (responses.length > 0 ? responses : undefined))
+        .then(rs => rs.filter(isResponse))
+        .then(rs => (isResponseBatch(rs) ? rs : undefined))
 }
 
-export function receiveData(
+export function receiveRequest(
+    request: Request,
+    service: Server
+): Promise<Response | void> {
+    return isRequestBatch(request)
+        ? receiveRequestBatch(request, service)
+        : receiveRequestItem(request, service)
+}
+
+export function receiveRequestData(
     data: any,
-    service: Service
-): Promise<Response | Response[] | void> {
+    service: Server
+): Promise<Response | void> {
     return validateRequest(data).fold(
         l => Promise.resolve(Failure(l)),
-        r =>
-            Array.isArray(r)
-                ? receiveRequests(r, service)
-                : receiveRequest(r, service)
+        r => receiveRequest(r, service)
     )
 }
 
-export function receiveJson(
+export function receiveRequestJson(
     json: string,
-    service: Service,
+    service: Server,
     reviver?: JsonReviver
-): Promise<Response | Response[] | void> {
+): Promise<Response | void> {
     return parseRequest(json, reviver).fold(
         l => Promise.resolve(Failure(l)),
-        r => receiveData(r, service)
+        r => receiveRequestData(r, service)
     )
 }
