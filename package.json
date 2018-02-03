@@ -1,6 +1,6 @@
 {
     "name": "@bocodigitalmedia/jsonrpc",
-    "version": "0.2.0",
+    "version": "1.0.0",
     "description": "JSON RPC Server/Client",
     "repository": "git@github.com:bocodigitalmedia/jsonrpc.git",
     "main": "dist/cjs/index.js",
@@ -10,7 +10,12 @@
     "engines": {
         "node": ">=6.5.0"
     },
-    "files": ["package.json", "LICENSE", "README.md", "dist"],
+    "files": [
+        "package.json",
+        "LICENSE",
+        "README.md",
+        "dist"
+    ],
     "scripts": {
         "build:esm": "tsc --outDir dist/esm --module es2015 --declaration",
         "build:cjs": "tsc --outDir dist/cjs --module commonjs",
