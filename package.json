@@ -1,0 +1,29 @@
+{
+    "name": "@bocodigitalmedia/jsonrpc",
+    "version": "0.1.0",
+    "description": "JSONRPC server helpers",
+    "main": "dist/cjs/index.js",
+    "author": "Christian Bradley <christianbradley@gmail.com>",
+    "license": "MIT",
+    "module": "dist/esm/index.js",
+    "typings": "dist/esm/index.d.ts",
+    "engines": {
+        "node": ">=8.9.3"
+    },
+    "scripts": {
+        "build:esm": "tsc --outDir dist/esm --module es2015 --declaration",
+        "build:cjs": "tsc --outDir dist/cjs --module commonjs",
+        "build": "rimraf dist && npm run build:esm && npm run build:cjs"
+    },
+    "devDependencies": {
+        "rimraf": "^2.6.2",
+        "ts-node": "^7.0.0",
+        "typescript": "2.8.4"
+    },
+    "dependencies": {
+        "@types/micro": "^7.3.1",
+        "@types/node": "8.10.0",
+        "io-ts": "^1.1.5",
+        "micro": "^9.3.2"
+    }
+}

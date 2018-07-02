@@ -1,0 +1,21 @@
+{
+    "include": ["src/**/*"],
+    "compilerOptions": {
+        "target": "es2017",
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "strict": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitAny": true,
+        "noImplicitThis": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noImplicitReturns": true,
+        "strictNullChecks": true,
+        "alwaysStrict": true,
+        "noErrorTruncation": true,
+        "forceConsistentCasingInFileNames": true,
+        "declaration": true,
+        "lib": ["es2017"]
+    }
+}
