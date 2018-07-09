@@ -15,12 +15,12 @@ const handleRequest = (task, options = {
     limit: '1k',
     encoding: 'utf8'
 }) => async (message) => {
-    const contentType = message.headers['content-type'] || '';
-    const accept = message.headers['accept'] || '';
-    if (!contentTypePattern.test(contentType))
-        throw micro_1.createError(415, 'Unsupported Media Type');
-    if (!contentTypePattern.test(accept))
-        throw micro_1.createError(406, 'Not acceptable');
+    // const contentType = message.headers['content-type'] || ''
+    // const accept = message.headers['accept'] || ''
+    // if (!contentTypePattern.test(contentType))
+    //     throw createError(415, 'Unsupported Media Type')
+    // if (!contentTypePattern.test(accept))
+    //     throw createError(406, 'Not acceptable')
     const json = await micro_1.text(message, options);
     return getOption(task)(json, message)
         .map(option => option.toNullable())

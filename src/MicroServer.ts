@@ -1,5 +1,5 @@
 import { IncomingMessage } from 'http'
-import { text, createError } from 'micro'
+import { text } from 'micro'
 import { Request } from './Request'
 import { Failure } from './Failure'
 import { Success } from './Success'
@@ -39,14 +39,14 @@ const handleRequest = <L extends FailureError, R>(
 ) => async (
     message: IncomingMessage
 ): Promise<Response<L | RpcError, R> | null> => {
-    const contentType = message.headers['content-type'] || ''
-    const accept = message.headers['accept'] || ''
+    // const contentType = message.headers['content-type'] || ''
+    // const accept = message.headers['accept'] || ''
 
-    if (!contentTypePattern.test(contentType))
-        throw createError(415, 'Unsupported Media Type')
+    // if (!contentTypePattern.test(contentType))
+    //     throw createError(415, 'Unsupported Media Type')
 
-    if (!contentTypePattern.test(accept))
-        throw createError(406, 'Not acceptable')
+    // if (!contentTypePattern.test(accept))
+    //     throw createError(406, 'Not acceptable')
 
     const json = await text(message, options)
 
